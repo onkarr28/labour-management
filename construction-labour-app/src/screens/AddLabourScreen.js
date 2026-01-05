@@ -21,12 +21,8 @@ const AddLabourScreen = ({ navigation }) => {
     name: '',
     mobile: '',
     dailyRate: '600',
-    trade: 'Mason',
     joiningDate: getTodayString(),
-    idProofType: '',
   });
-
-  const trades = ['Mason', 'Carpenter', 'Helper', 'Electrician', 'Plumber', 'Painter', 'Other'];
 
   const validateForm = () => {
     if (!formData.name || formData.name.length < 3) {
@@ -58,8 +54,6 @@ const AddLabourScreen = ({ navigation }) => {
       mobile: formData.mobile,
       dailyRate: parseInt(formData.dailyRate),
       joiningDate: formData.joiningDate,
-      trade: formData.trade,
-      idProofType: formData.idProofType || null,
       attendance: {},
       advances: [],
       totalAdvance: 0,
@@ -129,36 +123,6 @@ const AddLabourScreen = ({ navigation }) => {
               />
             </View>
 
-            {/* Trade */}
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Trade/Skill *</Text>
-              <View style={styles.tradeSelector}>
-                {trades.map((trade) => (
-                  <TouchableOpacity
-                    key={trade}
-                    style={[
-                      styles.tradeButton,
-                      formData.trade === trade &&
-                        styles.tradeButtonActive,
-                    ]}
-                    onPress={() =>
-                      setFormData({ ...formData, trade })
-                    }
-                  >
-                    <Text
-                      style={[
-                        styles.tradeButtonText,
-                        formData.trade === trade &&
-                          styles.tradeButtonTextActive,
-                      ]}
-                    >
-                      {trade}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
             {/* Joining Date */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Joining Date</Text>
@@ -169,20 +133,6 @@ const AddLabourScreen = ({ navigation }) => {
                 value={formData.joiningDate}
                 onChangeText={(text) =>
                   setFormData({ ...formData, joiningDate: text })
-                }
-              />
-            </View>
-
-            {/* ID Proof Type */}
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>ID Proof Type (Optional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., Aadhar, PAN, Voter ID"
-                placeholderTextColor={colors.text.secondary}
-                value={formData.idProofType}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, idProofType: text })
                 }
               />
             </View>
@@ -249,32 +199,6 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     ...typography.body,
     color: colors.text.primary,
-  },
-  tradeSelector: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  tradeButton: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    marginRight: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-  },
-  tradeButtonActive: {
-    backgroundColor: colors.primary.mint,
-    borderColor: colors.primary.mint,
-  },
-  tradeButtonText: {
-    ...typography.caption,
-    color: colors.text.secondary,
-  },
-  tradeButtonTextActive: {
-    color: colors.text.primary,
-    fontWeight: '600',
   },
   buttons: {
     marginTop: theme.spacing.lg,

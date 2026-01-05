@@ -84,7 +84,6 @@ const LabourDetailScreen = ({ route, navigation }) => {
           <View style={styles.infoHeader}>
             <View>
               <Text style={styles.workerName}>{labour.name}</Text>
-              <Text style={styles.workerTrade}>{labour.trade}</Text>
             </View>
           </View>
 
@@ -216,11 +215,6 @@ const styles = StyleSheet.create({
   workerName: {
     ...typography.h3,
     color: colors.text.primary,
-    marginBottom: theme.spacing.xs,
-  },
-  workerTrade: {
-    ...typography.bodySmall,
-    color: colors.text.secondary,
   },
   infoDetails: {
     borderTopWidth: 1,
