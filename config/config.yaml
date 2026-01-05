@@ -1,0 +1,12 @@
+# Configuration file for Labour Management System
+# Database configuration, API settings, etc.
+
+database:
+  host: localhost
+  port: 5432
+  name: labour_management
+  user: admin
+
+app:
+  debug: true
+  port: 3000
