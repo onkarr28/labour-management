@@ -30,15 +30,6 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "Allow Labour App to access your photos",
-          "cameraPermission": "Allow Labour App to use your camera"
-        }
-      ]
-    ]
+    }
   }
 }

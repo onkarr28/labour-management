@@ -7,12 +7,14 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
-import { Search, Sliders } from 'lucide-react-native';
 import { useLabour } from '../context/LabourContext';
 import { colors, theme } from '../constants/colors';
 import { typography } from '../constants/typography';
 import LabourCard from '../components/LabourCard';
+
+import { Search } from '../components/Icons';
 
 const LabourListScreen = ({ navigation }) => {
   const { state } = useLabour();

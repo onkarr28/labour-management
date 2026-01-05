@@ -2,10 +2,15 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Users, Home, BarChart3, Settings as SettingsIcon } from 'lucide-react-native';
+import { View } from 'react-native';
 
 import { LabourProvider } from './src/context/LabourContext';
 import { colors } from './src/constants/colors';
+
+// Simple icon components as placeholders
+const Home = ({ size, color }) => <View style={{ width: size, height: size, backgroundColor: color, borderRadius: size/2 }} />;
+const Users = ({ size, color }) => <View style={{ width: size, height: size, backgroundColor: color, borderRadius: 4 }} />;
+const BarChart3 = ({ size, color }) => <View style={{ width: size, height: size, backgroundColor: color }} />;
 
 // Screens
 import DashboardScreen from './src/screens/DashboardScreen';

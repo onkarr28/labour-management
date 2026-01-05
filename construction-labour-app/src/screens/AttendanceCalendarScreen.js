@@ -10,7 +10,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight } from '../components/Icons';
 import { useLabour } from '../context/LabourContext';
 import { colors, theme } from '../constants/colors';
 import { typography } from '../constants/typography';

@@ -6,7 +6,7 @@ import {
   StyleSheet,
   SafeAreaView,
 } from 'react-native';
-import { Users, Wallet, TrendingUp } from 'lucide-react-native';
+import { Users, Wallet, TrendingUp } from '../components/Icons';
 import { useLabour } from '../context/LabourContext';
 import { colors, theme } from '../constants/colors';
 import { typography } from '../constants/typography';

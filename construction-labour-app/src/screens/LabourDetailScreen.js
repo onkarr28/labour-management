@@ -8,7 +8,7 @@ import {
   SafeAreaView,
   Alert,
 } from 'react-native';
-import { ChevronLeft, Trash2, Edit } from 'lucide-react-native';
+import { ChevronLeft, Trash2, Edit } from '../components/Icons';
 import { useLabour } from '../context/LabourContext';
 import { colors, theme } from '../constants/colors';
 import { typography } from '../constants/typography';
