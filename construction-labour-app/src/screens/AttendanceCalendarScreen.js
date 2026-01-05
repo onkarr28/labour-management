@@ -137,7 +137,6 @@ const AttendanceCalendarScreen = ({ route, navigation }) => {
           </TouchableOpacity>
           <View style={styles.headerContent}>
             <Text style={styles.workerName}>{labour.name}</Text>
-            <Text style={styles.workerTrade}>{labour.trade}</Text>
           </View>
         </View>
 
@@ -315,10 +314,6 @@ const styles = StyleSheet.create({
   workerName: {
     ...typography.h3,
     color: colors.text.primary,
-  },
-  workerTrade: {
-    ...typography.caption,
-    color: colors.text.secondary,
   },
   monthNav: {
     flexDirection: 'row',

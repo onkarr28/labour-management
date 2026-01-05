@@ -51,7 +51,6 @@ const LabourCard = ({ labour, onPress }) => {
 
       <View style={styles.content}>
         <Text style={styles.name}>{labour.name}</Text>
-        <Text style={styles.trade}>{labour.trade}</Text>
         
         <View style={styles.balanceContainer}>
           <View
@@ -108,11 +107,6 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.text.primary,
     fontWeight: '600',
-    marginBottom: theme.spacing.xs,
-  },
-  trade: {
-    ...typography.caption,
-    color: colors.text.secondary,
     marginBottom: theme.spacing.sm,
   },
   balanceContainer: {
