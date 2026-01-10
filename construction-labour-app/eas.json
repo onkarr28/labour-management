@@ -1,9 +1,26 @@
 {
-  "expo": {
-    "extra": {
-      "eas": {
-        "projectId": "your-project-id"
+  "cli": {
+    "version": ">= 13.2.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "android": {
+        "buildType": "apk",
+        "image": "latest"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "apk",
+        "image": "latest"
       }
     }
+  },
+  "submit": {
+    "production": {}
   }
 }

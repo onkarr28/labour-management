@@ -1,17 +1,22 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
+  TouchableOpacity,
+  StatusBar,
+  Platform,
+  RefreshControl,
 } from 'react-native';
-import { Users, Wallet, TrendingUp } from '../components/Icons';
+import { Users, Wallet, TrendingUp, LogOut } from '../components/Icons';
 import { useLabour } from '../context/LabourContext';
+import { useAuth } from '../context/AuthContext';
 import { colors, theme } from '../constants/colors';
 import { typography } from '../constants/typography';
 import SummaryCard from '../components/SummaryCard';
 import QuickActionButton from '../components/QuickActionButton';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { getTodayString, getWeekStart } from '../utils/dateHelpers';
 import {
   calculatePresentDays,
@@ -21,8 +26,39 @@ import {
 } from '../utils/calculations';
 
 const DashboardScreen = ({ navigation }) => {
-  const { state } = useLabour();
+  const { state, refreshData } = useLabour();
   const { labours, contractorProfile } = state;
+  const { logout, user } = useAuth();
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Auto-refresh disabled to prevent interference with user input
+  // Use pull-to-refresh instead
+
+  // Handle pull-to-refresh
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refreshData();
+    setRefreshKey(prev => prev + 1);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 500);
+  };
+
+  const handleLogout = () => {
+    setShowLogoutDialog(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutDialog(false);
+    logout();
+  };
+
+  // All workers are visible to both contractors - no filtering needed
+  const contractorWorkers = useMemo(() => {
+    return labours;  // Show ALL workers to both contractors
+  }, [labours, refreshKey]);
 
   const dashboardData = useMemo(() => {
     const today = getTodayString();
@@ -31,12 +67,30 @@ const DashboardScreen = ({ navigation }) => {
     let presentToday = 0;
     let weeklyAdvances = 0;
     let weeklyPayout = 0;
+    const workersBySite = {};
 
-    labours.forEach((labour) => {
-      // Count present today
+    contractorWorkers.forEach((labour) => {
+      // Count present today and track site
       if (labour.attendance && labour.attendance[today]) {
         if (labour.attendance[today].status === 'present') {
           presentToday++;
+          const sites = labour.attendance[today].sites || 
+                       (labour.attendance[today].site ? [labour.attendance[today].site] : []);
+          
+          if (sites.length === 0) {
+            const noSiteKey = 'No site assigned';
+            if (!workersBySite[noSiteKey]) {
+              workersBySite[noSiteKey] = [];
+            }
+            workersBySite[noSiteKey].push(labour.name);
+          } else {
+            sites.forEach(site => {
+              if (!workersBySite[site]) {
+                workersBySite[site] = [];
+              }
+              workersBySite[site].push(labour.name);
+            });
+          }
         }
       }
 
@@ -50,18 +104,29 @@ const DashboardScreen = ({ navigation }) => {
       presentToday,
       weeklyAdvances,
       weeklyPayout,
-      totalWorkers: labours.length,
+      totalWorkers: contractorWorkers.length,
+      workersBySite,
     };
-  }, [labours]);
+  }, [contractorWorkers, refreshKey]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary.mint}
+            colors={[colors.primary.mint]}
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.greeting}>
-              Hello, {contractorProfile.name}! 👋
+              Hello, {user?.name}! 👋
             </Text>
             <Text style={styles.date}>
               {new Date().toLocaleDateString('en-US', {
@@ -72,6 +137,9 @@ const DashboardScreen = ({ navigation }) => {
               })}
             </Text>
           </View>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <LogOut size={24} color={colors.text.primary} />
+          </TouchableOpacity>
         </View>
 
         {/* Summary Cards */}
@@ -82,22 +150,6 @@ const DashboardScreen = ({ navigation }) => {
             subtitle={`of ${dashboardData.totalWorkers} workers`}
             icon={Users}
             color="primary"
-          />
-
-          <SummaryCard
-            title="Weekly Payout"
-            value={`₹${dashboardData.weeklyPayout}`}
-            subtitle="Net amount to pay"
-            icon={Wallet}
-            color="mint"
-          />
-
-          <SummaryCard
-            title="Advances This Week"
-            value={`₹${dashboardData.weeklyAdvances}`}
-            subtitle="Total advances given"
-            icon={TrendingUp}
-            color="blue"
           />
         </View>
 
@@ -111,8 +163,13 @@ const DashboardScreen = ({ navigation }) => {
           />
           <QuickActionButton
             title="Mark Today's Attendance"
-            onPress={() => navigation.navigate('LabourList')}
+            onPress={() => navigation.navigate('QuickAttendance')}
             variant="mint"
+          />
+          <QuickActionButton
+            title="View Transactions"
+            onPress={() => navigation.navigate('TransactionHistory')}
+            variant="blue"
           />
           <QuickActionButton
             title="View Weekly Report"
@@ -121,6 +178,25 @@ const DashboardScreen = ({ navigation }) => {
           />
         </View>
 
+        {/* Workers by Site */}
+        {dashboardData.presentToday > 0 && (
+          <View style={styles.siteSection}>
+            <Text style={styles.sectionTitle}>Today&apos;s Site Allocation</Text>
+            {Object.entries(dashboardData.workersBySite).map(([site, workers]) => (
+              <View key={site} style={[styles.siteCard, theme.shadows.soft]}>
+                <Text style={styles.siteName}>{site}</Text>
+                <View style={styles.workersList}>
+                  {workers.map((worker, idx) => (
+                    <View key={idx} style={styles.workerChip}>
+                      <Text style={styles.workerChipText}>{worker}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Empty State */}
         {dashboardData.totalWorkers === 0 && (
           <View style={styles.emptyState}>
@@ -128,9 +204,17 @@ const DashboardScreen = ({ navigation }) => {
               No workers added yet. Add your first worker to get started!
             </Text>
           </View>
-        )}
+)}
       </ScrollView>
-    </SafeAreaView>
+      
+      <ConfirmDialog
+        visible={showLogoutDialog}
+        title="Logout"
+        message="Are you sure you want to logout?"
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutDialog(false)}
+      />
+    </View>
   );
 };
 
@@ -138,11 +222,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 44,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.lg,
     paddingBottom: theme.spacing.md,
+  },
+  logoutButton: {
+    padding: theme.spacing.sm,
   },
   greeting: {
     ...typography.h2,
@@ -178,6 +269,37 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.text.primary,
     textAlign: 'center',
+  },
+  siteSection: {
+    paddingHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+  },
+  siteCard: {
+    backgroundColor: colors.card,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
+  siteName: {
+    ...typography.h4,
+    color: colors.text.primary,
+    marginBottom: theme.spacing.sm,
+  },
+  workersList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  workerChip: {
+    backgroundColor: colors.primary.mint,
+    borderRadius: theme.radius.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+  },
+  workerChipText: {
+    ...typography.caption,
+    color: colors.text.primary,
+    fontWeight: '600',
   },
 });
 

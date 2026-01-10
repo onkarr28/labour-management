@@ -1,11 +1,13 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   FlatList,
+  StatusBar,
+  Platform,
+  RefreshControl,
 } from 'react-native';
 import { useLabour } from '../context/LabourContext';
 import { colors, theme } from '../constants/colors';
@@ -15,21 +17,40 @@ import { getWeekStart } from '../utils/dateHelpers';
 import { calculateWeekSummary } from '../utils/calculations';
 
 const WeeklyReportScreen = ({ navigation }) => {
-  const { state } = useLabour();
+  const { state, refreshData } = useLabour();
   const weekStart = getWeekStart();
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Auto-refresh disabled to prevent interference with user input
+  // Use pull-to-refresh instead
+
+  // Handle pull-to-refresh
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refreshData();
+    setRefreshKey(prev => prev + 1);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 500);
+  };
 
   const weeklyData = useMemo(() => {
     let totalWorkers = 0;
     let totalPayout = 0;
     let totalAdvances = 0;
+    let totalPayments = 0;
+    let totalRepayments = 0;
     let workerBreakdown = [];
 
     state.labours.forEach((labour) => {
       const summary = calculateWeekSummary(labour, weekStart);
-      if (summary.presentDays > 0 || summary.weekAdvances > 0) {
+      if (summary.presentDays > 0 || summary.weekAdvances > 0 || summary.weekPayments > 0 || summary.weekRepayments > 0) {
         totalWorkers++;
         totalPayout += summary.netPay;
         totalAdvances += summary.weekAdvances;
+        totalPayments += summary.weekPayments;
+        totalRepayments += summary.weekRepayments || 0;
         workerBreakdown.push({
           ...labour,
           ...summary,
@@ -41,10 +62,12 @@ const WeeklyReportScreen = ({ navigation }) => {
       totalWorkers,
       totalPayout,
       totalAdvances,
+      totalPayments,
+      totalRepayments,
       netCashRequired: totalPayout,
       workerBreakdown,
     };
-  }, [state.labours, weekStart]);
+  }, [state.labours, weekStart, refreshKey]);
 
   const weekEndDate = new Date(weekStart);
   weekEndDate.setDate(weekEndDate.getDate() + 6);
@@ -74,6 +97,9 @@ const WeeklyReportScreen = ({ navigation }) => {
         <Text style={styles.tableValue}>₹{item.weekAdvances}</Text>
       </View>
       <View style={styles.tableCell}>
+        <Text style={styles.tableValue}>₹{item.weekPayments || 0}</Text>
+      </View>
+      <View style={styles.tableCell}>
         <Text style={[styles.tableValue, styles.netPayValue]}>
           ₹{item.netPay}
         </Text>
@@ -82,8 +108,18 @@ const WeeklyReportScreen = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary.mint}
+            colors={[colors.primary.mint]}
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Weekly Report</Text>
@@ -108,9 +144,9 @@ const WeeklyReportScreen = ({ navigation }) => {
             color="warning"
           />
           <WeeklySummaryCard
-            label="Net Cash Required"
-            value={`₹${weeklyData.netCashRequired}`}
-            color="blue"
+            label="Already Paid"
+            value={`₹${weeklyData.totalPayments}`}
+            color="mint"
           />
         </View>
 
@@ -135,7 +171,10 @@ const WeeklyReportScreen = ({ navigation }) => {
                   <Text style={styles.tableHeaderText}>Adv.</Text>
                 </View>
                 <View style={styles.tableHeaderCell}>
-                  <Text style={styles.tableHeaderText}>Pay</Text>
+                  <Text style={styles.tableHeaderText}>Paid</Text>
+                </View>
+                <View style={styles.tableHeaderCell}>
+                  <Text style={styles.tableHeaderText}>Due</Text>
                 </View>
               </View>
 
@@ -155,39 +194,8 @@ const WeeklyReportScreen = ({ navigation }) => {
             </View>
           )}
         </View>
-
-        {/* Payday Preparation */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payday Checklist</Text>
-          <View style={[styles.checklistCard, theme.shadows.soft]}>
-            <View style={styles.checklistItem}>
-              <Text style={styles.checkmark}>✓</Text>
-              <Text style={styles.checklistText}>
-                Review all attendance records
-              </Text>
-            </View>
-            <View style={styles.checklistItem}>
-              <Text style={styles.checkmark}>✓</Text>
-              <Text style={styles.checklistText}>
-                Verify advance deductions
-              </Text>
-            </View>
-            <View style={styles.checklistItem}>
-              <Text style={styles.checkmark}>✓</Text>
-              <Text style={styles.checklistText}>
-                Confirm payment amounts with workers
-              </Text>
-            </View>
-            <View style={styles.checklistItem}>
-              <Text style={styles.checkmark}>✓</Text>
-              <Text style={styles.checklistText}>
-                Arrange required cash
-              </Text>
-            </View>
-          </View>
-        </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -195,6 +203,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 44,
   },
   header: {
     paddingHorizontal: theme.spacing.lg,

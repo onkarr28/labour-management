@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,17 +8,30 @@ import {
 } from 'react-native';
 import { colors, theme } from '../constants/colors';
 import { typography } from '../constants/typography';
+import {
+  calculatePresentDays,
+  calculateEarned,
+  calculateTotalAdvances,
+  calculateTotalPayments,
+  calculateNetBalance,
+} from '../utils/calculations';
 
 const LabourCard = ({ labour, onPress }) => {
+  const balance = useMemo(() => {
+    const presentDays = calculatePresentDays(labour.attendance);
+    const earned = calculateEarned(presentDays, labour.dailyRate);
+    const totalAdvances = calculateTotalAdvances(labour.advances);
+    const totalPayments = calculateTotalPayments(labour.payments);
+    return calculateNetBalance(earned, totalAdvances, totalPayments);
+  }, [labour]);
+
   const getBalanceColor = () => {
-    const balance = labour.currentBalance || 0;
     if (balance === 0) return colors.success;
     if (balance > 0) return colors.warning;
     return colors.error;
   };
 
   const getBalanceLabel = () => {
-    const balance = labour.currentBalance || 0;
     if (balance === 0) return 'Settled';
     if (balance > 0) return `Pay: ₹${balance}`;
     return `Due: ₹${Math.abs(balance)}`;
@@ -51,6 +64,9 @@ const LabourCard = ({ labour, onPress }) => {
 
       <View style={styles.content}>
         <Text style={styles.name}>{labour.name}</Text>
+        {labour.trade ? (
+          <Text style={styles.trade}>{labour.trade}</Text>
+        ) : null}
         
         <View style={styles.balanceContainer}>
           <View
@@ -108,6 +124,11 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontWeight: '600',
     marginBottom: theme.spacing.sm,
+  },
+  trade: {
+    ...typography.caption,
+    color: colors.text.secondary,
+    marginBottom: theme.spacing.xs,
   },
   balanceContainer: {
     marginTop: theme.spacing.xs,

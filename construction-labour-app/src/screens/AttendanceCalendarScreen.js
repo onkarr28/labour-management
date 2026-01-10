@@ -1,14 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
-  Modal,
-  TextInput,
-  Alert,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { ChevronLeft, ChevronRight } from '../components/Icons';
 import { useLabour } from '../context/LabourContext';
@@ -16,9 +14,9 @@ import { colors, theme } from '../constants/colors';
 import { typography } from '../constants/typography';
 import {
   formatDateToString,
-  parseStringToDate,
   getMonthName,
-  getWorkingDaysInMonth,
+  isFutureDate,
+  isToday,
 } from '../utils/dateHelpers';
 import {
   calculatePresentDays,
@@ -30,14 +28,11 @@ import QuickActionButton from '../components/QuickActionButton';
 
 const AttendanceCalendarScreen = ({ route, navigation }) => {
   const { labourId } = route.params;
-  const { state, updateAttendance, addAdvance } = useLabour();
+  const { state } = useLabour();
   const labour = state.labours.find((l) => l.id === labourId);
 
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [showAdvanceModal, setShowAdvanceModal] = useState(false);
-  const [selectedDateForAdvance, setSelectedDateForAdvance] = useState(null);
-  const [advanceAmount, setAdvanceAmount] = useState('');
-  const [advanceNote, setAdvanceNote] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   if (!labour) {
     return (
@@ -81,38 +76,7 @@ const AttendanceCalendarScreen = ({ route, navigation }) => {
     return labour.attendance ? labour.attendance[dateStr] : null;
   };
 
-  const handleMarkAttendance = (day, status) => {
-    const dateStr = getDateString(day);
-    updateAttendance(labourId, dateStr, {
-      status,
-      marked: true,
-    });
-  };
-
-  const handleAddAdvance = (day) => {
-    const dateStr = getDateString(day);
-    setSelectedDateForAdvance(dateStr);
-    setShowAdvanceModal(true);
-  };
-
-  const handleSaveAdvance = () => {
-    const amount = parseInt(advanceAmount);
-    if (!amount || amount <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount');
-      return;
-    }
-
-    addAdvance(labourId, {
-      date: selectedDateForAdvance,
-      amount,
-      note: advanceNote,
-    });
-
-    setAdvanceAmount('');
-    setAdvanceNote('');
-    setShowAdvanceModal(false);
-    Alert.alert('Success', 'Advance recorded successfully!');
-  };
+  // Calendar is now read-only; changes happen from Quick Attendance / detail screens
 
   // Calculate summary
   const summary = useMemo(() => {
@@ -125,7 +89,7 @@ const AttendanceCalendarScreen = ({ route, navigation }) => {
   }, [labour]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -186,17 +150,21 @@ const AttendanceCalendarScreen = ({ route, navigation }) => {
               const attendance = getAttendanceStatus(day);
               const isPresentDay = attendance?.status === 'present';
               const isAbsentDay = attendance?.status === 'absent';
+              const dateStr = getDateString(day);
+              const today = isToday(dateStr);
+              const hasAdvance = (labour.advances || []).some(
+                (adv) => adv.date === dateStr,
+              );
 
               return (
-                <TouchableOpacity
+                <View
                   key={day}
                   style={[
                     styles.dayCell,
                     isPresentDay && styles.dayPresent,
                     isAbsentDay && styles.dayAbsent,
+                    today && styles.dayToday,
                   ]}
-                  onPress={() => handleMarkAttendance(day, isPresentDay ? 'absent' : 'present')}
-                  onLongPress={() => handleAddAdvance(day)}
                 >
                   <Text
                     style={[
@@ -206,7 +174,8 @@ const AttendanceCalendarScreen = ({ route, navigation }) => {
                   >
                     {day}
                   </Text>
-                </TouchableOpacity>
+                  {hasAdvance && <View style={styles.advanceDot} />}
+                </View>
               );
             })}
           </View>
@@ -245,52 +214,7 @@ const AttendanceCalendarScreen = ({ route, navigation }) => {
         </View>
       </ScrollView>
 
-      {/* Advance Modal */}
-      <Modal
-        visible={showAdvanceModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowAdvanceModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Record Advance</Text>
-            <Text style={styles.modalDate}>{selectedDateForAdvance}</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Amount (₹)"
-              placeholderTextColor={colors.text.secondary}
-              keyboardType="numeric"
-              value={advanceAmount}
-              onChangeText={setAdvanceAmount}
-            />
-
-            <TextInput
-              style={[styles.input, styles.inputLarge]}
-              placeholder="Note (optional)"
-              placeholderTextColor={colors.text.secondary}
-              value={advanceNote}
-              onChangeText={setAdvanceNote}
-              multiline
-            />
-
-            <View style={styles.modalButtons}>
-              <QuickActionButton
-                title="Save"
-                onPress={handleSaveAdvance}
-                variant="success"
-              />
-              <QuickActionButton
-                title="Cancel"
-                onPress={() => setShowAdvanceModal(false)}
-                variant="error"
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -298,6 +222,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 44,
   },
   header: {
     flexDirection: 'row',
@@ -350,12 +275,17 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   dayCell: {
-    width: '14.28%',
+    width: '13%',
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: theme.radius.sm,
-    marginBottom: theme.spacing.xs,
+    marginBottom: theme.spacing.sm,
+    marginHorizontal: 2,
+  },
+  dayToday: {
+    borderWidth: 2,
+    borderColor: colors.primary.blue,
   },
   dayPresent: {
     backgroundColor: colors.success,
@@ -370,6 +300,13 @@ const styles = StyleSheet.create({
   },
   dayTextMarked: {
     color: colors.card,
+  },
+  advanceDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary.mint,
+    marginTop: 2,
   },
   summarySection: {
     paddingHorizontal: theme.spacing.lg,
@@ -408,45 +345,6 @@ const styles = StyleSheet.create({
   actionsSection: {
     paddingHorizontal: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: theme.radius.xl,
-    borderTopRightRadius: theme.radius.xl,
-    padding: theme.spacing.lg,
-  },
-  modalTitle: {
-    ...typography.h3,
-    color: colors.text.primary,
-    marginBottom: theme.spacing.xs,
-  },
-  modalDate: {
-    ...typography.caption,
-    color: colors.text.secondary,
-    marginBottom: theme.spacing.md,
-  },
-  input: {
-    backgroundColor: colors.background,
-    borderRadius: theme.radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    ...typography.body,
-    color: colors.text.primary,
-    marginBottom: theme.spacing.md,
-  },
-  inputLarge: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  modalButtons: {
-    marginTop: theme.spacing.lg,
   },
 });
 

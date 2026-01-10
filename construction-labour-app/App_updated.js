@@ -2,13 +2,13 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, ActivityIndicator, Text } from 'react-native';
+import { View, ActivityIndicator, Text, StatusBar } from 'react-native';
 
 import { LabourProvider } from './src/context/LabourContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { colors } from './src/constants/colors';
 import { Toast } from './src/components/Toast';
-import { Home, Users, BarChart3 } from './src/components/Icons';
+import { Home, Users } from './src/components/Icons';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -149,41 +149,46 @@ const LabourStack = () => (
 
 // Bottom Tab Navigator
 const RootTabs = () => (
-  <Tab.Navigator
-    screenOptions={{
-      headerShown: false,
-      tabBarShowLabel: true,
-      tabBarActiveTintColor: colors.primary.mint,
-      tabBarInactiveTintColor: colors.text.secondary,
-      tabBarStyle: {
-        borderTopColor: colors.border,
-        borderTopWidth: 1,
-        backgroundColor: colors.card,
-        paddingBottom: 8,
-      },
-    }}
-  >
-    <Tab.Screen
-      name="HomeTab"
-      component={DashboardStack}
-      options={{
-        tabBarLabel: 'Home',
-        tabBarIcon: ({ color, size }) => (
-          <Home size={size} color={color} />
-        ),
+  <>
+    <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarShowLabel: true,
+        tabBarActiveTintColor: colors.primary.mint,
+        tabBarInactiveTintColor: colors.text.secondary,
+        tabBarStyle: {
+          borderTopColor: colors.border,
+          borderTopWidth: 1,
+          backgroundColor: colors.card,
+          paddingBottom: 8,
+          paddingTop: 8,
+          height: 60,
+        },
       }}
-    />
-    <Tab.Screen
-      name="LabourTab"
-      component={LabourStack}
-      options={{
-        tabBarLabel: 'Workers',
-        tabBarIcon: ({ color, size }) => (
-          <Users size={size} color={color} />
-        ),
-      }}
-    />
-  </Tab.Navigator>
+    >
+      <Tab.Screen
+        name="HomeTab"
+        component={DashboardStack}
+        options={{
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ color, size }) => (
+            <Home size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="LabourTab"
+        component={LabourStack}
+        options={{
+          tabBarLabel: 'Workers',
+          tabBarIcon: ({ color, size }) => (
+            <Users size={size} color={color} />
+          ),
+        }}
+      />
+    </Tab.Navigator>
+  </>
 );
 
 // Main App Component

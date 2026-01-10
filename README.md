@@ -6,7 +6,6 @@ A comprehensive labour management and tracking system for efficient workforce ma
 
 - `docs/` - Project documentation
 - `src/` - Source code
-- `database/` - Database files and schemas
 - `config/` - Configuration files
 
 ## Features
@@ -21,8 +20,7 @@ A comprehensive labour management and tracking system for efficient workforce ma
 
 1. Clone the repository
 2. Install dependencies
-3. Configure database
-4. Run the application
+3. Run the application
 
 ## License
 

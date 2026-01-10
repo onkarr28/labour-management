@@ -16,7 +16,8 @@ export const calculateEarned = (presentDays, dailyRate) => {
 };
 
 /**
- * Calculate total advances taken
+ * Calculate total advances taken (all contractors combined)
+ * Each advance tracks who paid it (paidBy field)
  */
 export const calculateTotalAdvances = (advances) => {
   if (!advances || advances.length === 0) return 0;
@@ -24,10 +25,36 @@ export const calculateTotalAdvances = (advances) => {
 };
 
 /**
+ * Calculate total payments made to the worker
+ */
+export const calculateTotalPayments = (payments) => {
+  if (!payments || payments.length === 0) return 0;
+  return payments.reduce((sum, payment) => sum + payment.amount, 0);
+};
+
+/**
+ * Calculate total repayments received from the worker (when they owe money)
+ */
+export const calculateTotalRepayments = (repayments) => {
+  if (!repayments || repayments.length === 0) return 0;
+  return repayments.reduce((sum, repayment) => sum + repayment.amount, 0);
+};
+
+/**
  * Calculate net payable amount (earned - advances)
+ * (Used mainly for weekly summaries where payments are not considered.)
  */
 export const calculateNetPayable = (earned, totalAdvances) => {
   return earned - totalAdvances;
+};
+
+/**
+ * Calculate current balance considering payments and repayments
+ * Formula: earned - advances - payments + repayments
+ * Repayments are added because they reduce the debt owed by the worker
+ */
+export const calculateNetBalance = (earned, totalAdvances, totalPayments, totalRepayments = 0) => {
+  return earned - totalAdvances - totalPayments + totalRepayments;
 };
 
 /**
@@ -65,6 +92,7 @@ export const getAttendanceSummary = (attendance, startDate, endDate) => {
 
 /**
  * Calculate week summary for a worker
+ * All advances, payments, and repayments are shared - but tracked by who paid/received
  */
 export const calculateWeekSummary = (worker, weekStartDate) => {
   const weekEndDate = new Date(weekStartDate);
@@ -76,6 +104,7 @@ export const calculateWeekSummary = (worker, weekStartDate) => {
     weekEndDate
   );
 
+  // All advances are shared across contractors
   const weekAdvances = (worker.advances || []).filter((advance) => {
     const advanceDate = new Date(advance.date);
     return advanceDate >= weekStartDate && advanceDate <= weekEndDate;
@@ -86,13 +115,38 @@ export const calculateWeekSummary = (worker, weekStartDate) => {
     0
   );
 
+  // All payments are shared across contractors
+  const weekPayments = (worker.payments || []).filter((payment) => {
+    const paymentDate = new Date(payment.date);
+    return paymentDate >= weekStartDate && paymentDate <= weekEndDate;
+  });
+
+  const weekPaymentTotal = weekPayments.reduce(
+    (sum, pay) => sum + pay.amount,
+    0
+  );
+
+  // All repayments are shared across contractors
+  const weekRepayments = (worker.repayments || []).filter((repayment) => {
+    const repaymentDate = new Date(repayment.date);
+    return repaymentDate >= weekStartDate && repaymentDate <= weekEndDate;
+  });
+
+  const weekRepaymentTotal = weekRepayments.reduce(
+    (sum, rep) => sum + rep.amount,
+    0
+  );
+
   const earned = calculateEarned(present, worker.dailyRate);
-  const netPay = earned - weekAdvanceTotal;
+  // Net pay: earned - ALL advances - ALL payments + ALL repayments (same for all contractors)
+  const netPay = earned - weekAdvanceTotal - weekPaymentTotal + weekRepaymentTotal;
 
   return {
     presentDays: present,
     earned,
     weekAdvances: weekAdvanceTotal,
+    weekPayments: weekPaymentTotal,
+    weekRepayments: weekRepaymentTotal,
     netPay,
   };
 };

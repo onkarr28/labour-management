@@ -1,15 +1,18 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
   FlatList,
   TextInput,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
+  StatusBar,
+  Platform,
+  RefreshControl,
 } from 'react-native';
 import { useLabour } from '../context/LabourContext';
+import { useAuth } from '../context/AuthContext';
 import { colors, theme } from '../constants/colors';
 import { typography } from '../constants/typography';
 import LabourCard from '../components/LabourCard';
@@ -17,13 +20,34 @@ import LabourCard from '../components/LabourCard';
 import { Search } from '../components/Icons';
 
 const LabourListScreen = ({ navigation }) => {
-  const { state } = useLabour();
+  const { state, refreshData } = useLabour();
+  const { user } = useAuth();
   const [searchText, setSearchText] = useState('');
   const [filterTrade, setFilterTrade] = useState('');
   const [sortBy, setSortBy] = useState('name'); // 'name', 'balance', 'date'
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Auto-refresh disabled to prevent interference with user input
+  // Use pull-to-refresh instead
+
+  // Handle pull-to-refresh
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refreshData();
+    setRefreshKey(prev => prev + 1);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 500);
+  };
+
+  // All workers are visible to both contractors - no filtering needed
+  const contractorLabours = useMemo(() => {
+    return state.labours;  // Show ALL workers to both contractors
+  }, [state.labours, refreshKey]);
 
   const filteredAndSortedLabours = useMemo(() => {
-    let result = [...state.labours];
+    let result = [...contractorLabours];
 
     // Filter by search text
     if (searchText) {
@@ -53,12 +77,12 @@ const LabourListScreen = ({ navigation }) => {
     }
 
     return result;
-  }, [state.labours, searchText, filterTrade, sortBy]);
+  }, [contractorLabours, searchText, filterTrade, sortBy]);
 
-  const trades = ['Mason', 'Carpenter', 'Helper', 'Electrician', 'Plumber', 'Painter', 'Other'];
+  const trades = ['Worker', 'Helper'];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Search Bar */}
       <View style={styles.searchSection}>
         <View style={[styles.searchBox, theme.shadows.soft]}>
@@ -115,6 +139,14 @@ const LabourListScreen = ({ navigation }) => {
           </View>
         )}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary.mint}
+            colors={[colors.primary.mint]}
+          />
+        }
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateText}>
@@ -133,7 +165,7 @@ const LabourListScreen = ({ navigation }) => {
       >
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -141,6 +173,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 44,
   },
   searchSection: {
     paddingHorizontal: theme.spacing.lg,

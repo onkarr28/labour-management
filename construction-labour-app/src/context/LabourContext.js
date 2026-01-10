@@ -1,10 +1,14 @@
 import React, { createContext, useReducer, useEffect } from 'react';
 import * as StorageService from '../utils/storage';
+import { fetchLaboursFromFirebase, syncLaboursToFirebase, deleteAllLaboursFromFirebase } from '../services/firebaseLabours';
 
 export const LabourContext = createContext();
 
+// Empty initial workers - will be synced from Firebase
+const testWorkers = [];
+
 const initialState = {
-  labours: [],
+  labours: testWorkers,
   contractorProfile: { name: 'Contractor', businessName: '', contact: '' },
   appSettings: {
     defaultDailyRate: 600,
@@ -91,7 +95,28 @@ const labourReducer = (state, action) => {
     case 'RECORD_PAYMENT':
       return {
         ...state,
+        labours: state.labours.map((labour) =>
+          labour.id === action.payload.labourId
+            ? {
+                ...labour,
+                payments: [...(labour.payments || []), action.payload.payment],
+              }
+            : labour
+        ),
         paymentHistory: [...state.paymentHistory, action.payload],
+      };
+
+    case 'RECORD_REPAYMENT':
+      return {
+        ...state,
+        labours: state.labours.map((labour) =>
+          labour.id === action.payload.labourId
+            ? {
+                ...labour,
+                repayments: [...(labour.repayments || []), action.payload.repayment],
+              }
+            : labour
+        ),
       };
 
     case 'SET_CONTRACTOR_PROFILE':
@@ -124,14 +149,17 @@ export const LabourProvider = ({ children }) => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [labours, contractor, settings, payments] = await Promise.all([
-          StorageService.getLabours(),
+        const [firebaseLabours, contractor, settings, payments] = await Promise.all([
+          fetchLaboursFromFirebase(),
           StorageService.getContractorProfile(),
           StorageService.getAppSettings(),
           StorageService.getPaymentHistory(),
         ]);
 
-        dispatch({ type: 'SET_LABOURS', payload: labours });
+        if (firebaseLabours && firebaseLabours.length > 0) {
+          dispatch({ type: 'SET_LABOURS', payload: firebaseLabours });
+        }
+
         dispatch({ type: 'SET_CONTRACTOR_PROFILE', payload: contractor });
         dispatch({ type: 'SET_APP_SETTINGS', payload: settings });
         dispatch({ type: 'SET_PAYMENT_HISTORY', payload: payments });
@@ -149,6 +177,8 @@ export const LabourProvider = ({ children }) => {
   useEffect(() => {
     if (!state.loading) {
       StorageService.saveLabours(state.labours);
+      // Also sync to Firebase
+      syncLaboursToFirebase(state.labours);
     }
   }, [state.labours, state.loading]);
 
@@ -196,11 +226,26 @@ export const LabourProvider = ({ children }) => {
       }),
     recordPayment: (payment) =>
       dispatch({ type: 'RECORD_PAYMENT', payload: payment }),
+    recordRepayment: (labourId, repayment) =>
+      dispatch({ type: 'RECORD_REPAYMENT', payload: { labourId, repayment } }),
     setContractorProfile: (profile) =>
       dispatch({ type: 'SET_CONTRACTOR_PROFILE', payload: profile }),
     setAppSettings: (settings) =>
       dispatch({ type: 'SET_APP_SETTINGS', payload: settings }),
-    clearAllData: () => dispatch({ type: 'RESET_STATE' }),
+    refreshData: async () => {
+      try {
+        const firebaseLabours = await fetchLaboursFromFirebase();
+        if (firebaseLabours && firebaseLabours.length >= 0) {
+          dispatch({ type: 'SET_LABOURS', payload: firebaseLabours });
+        }
+      } catch (error) {
+        console.error('Error refreshing data:', error);
+      }
+    },
+    clearAllData: async () => {
+      await deleteAllLaboursFromFirebase();
+      dispatch({ type: 'RESET_STATE' });
+    },
   };
 
   return (

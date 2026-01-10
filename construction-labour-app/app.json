@@ -4,13 +4,11 @@
     "slug": "labour-management-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#FFB6C1"
+      "backgroundColor": "#ffffff",
+      "resizeMode": "contain"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -21,15 +19,16 @@
       "buildNumber": "1.0.0"
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FAFAFA"
-      },
-      "package": "com.labourapp.construction",
+      "package": "com.itwork28.labourapp",
       "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d5e82bd6-9ca1-40f2-968e-98d77d2da566"
+      }
     }
   }
 }
