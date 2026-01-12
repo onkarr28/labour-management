@@ -1,16 +1,31 @@
 # Global Shared Workers System
 
-## ✅ All Workers Now Visible to BOTH Contractors
+## ✅ Complete Implementation Status
 
-### **What Changed:**
+### **Latest Updates (January 12, 2026):**
 
-**Before:** 
-- Shivaji creates worker → Only visible to Shivaji
-- Dattatray needs to manually add to see it
+1. **Half-Day Attendance** ✅
+   - Three-state attendance: Absent → Full Day → Half Day → cycle
+   - Half-day calculated as 0.5 days in all earnings/calculations
+   - Shows as decimal (2.5 days = 2 full + 1 half) across all screens
+   - Half-day earnings = 50% of daily rate
 
-**After:**
-- Anyone creates worker → Instantly visible to BOTH contractors
-- All data fully linked and shared
+2. **Global Worker Photos** ✅
+   - Photos uploaded to Firebase Storage (globally accessible)
+   - Works across all phones automatically
+   - Falls back to local URI for backward compatibility
+   - Photo loading indicator during upload
+
+3. **Transaction History Enhanced** ✅
+   - Half-day attendance shows as separate transaction
+   - Half-day amount = 50% of daily rate
+   - Filter by period (All/Week/Month) includes half-days
+   - Transaction type clearly labeled (Present vs Half Day)
+
+4. **Security Improvements** ✅
+   - Removed LOGIN_CREDENTIALS.md (no hardcoded credentials in repo)
+   - Credentials should be managed through environment variables
+   - Password fields display-only in app
 
 ---
 
@@ -23,7 +38,13 @@
 {
   id: "labour_12345",
   name: "Rajesh",
+  photoUrl: "https://firebase-storage.../worker-photos/labour_12345-*.jpg",  // ← Global photo!
   contractorIds: ['contractor_1', 'contractor_2'],  // ← BOTH automatically!
+  attendance: {
+    "2026-01-12": { marked: true, status: "full-day" },  // Full day
+    "2026-01-13": { marked: true, status: "half-day" },  // Half day (0.5)
+    "2026-01-14": { marked: false, status: "absent" }     // Absent
+  }
   // ...
 }
 ```
@@ -32,16 +53,18 @@
 
 **Shivaji's Dashboard:**
 ```
-✅ Rajesh visible in worker list
-✅ Shows in "Present Today"
-✅ Appears in weekly calculations
+✅ Rajesh visible in worker list (with photo)
+✅ Shows in "Present Today: Rajesh, Mahesh (½)"  ← shows half-day workers too
+✅ Site allocation shows "Rajesh (½)" for half-day workers
+✅ Appears in weekly calculations (2.5 days)
 ```
 
 **Dattatray's Dashboard (NO REFRESH NEEDED):**
 ```
-✅ Rajesh visible in worker list
-✅ Shows in "Present Today"
-✅ Appears in weekly calculations
+✅ Rajesh visible in worker list (with SAME photo from Firebase)
+✅ Shows in "Present Today" with half-day indicators
+✅ Site allocation updated in real-time
+✅ Appears in weekly calculations with decimal days
 ✅ Same advances/payments data
 ✅ Same earnings/balance
 ```
@@ -52,14 +75,16 @@
 
 ### **1. Worker Creation**
 ```
-✓ Shivaji adds Rajesh → Dattatray sees instantly
-✓ Dattatray adds Mahesh → Shivaji sees instantly
+✓ Shivaji adds Rajesh with photo → Dattatray sees instantly + photo loads
+✓ Dattatray adds Mahesh with photo → Shivaji sees instantly + photo loads
 ```
 
-### **2. Attendance**
+### **2. Attendance (with half-day support)**
 ```
-✓ Shivaji marks Rajesh present → Dattatray sees updated
-✓ Dattatray marks Rajesh present → Shivaji sees updated
+✓ Shivaji marks Rajesh Full Day (1) → Dattatray sees updated
+✓ Dattatray marks Rajesh Half Day (0.5) → Shivaji sees updated
+✓ Both show week total as 2.5 days (not 2 or 3)
+✓ Half-day shows as transaction with 50% payment
 ```
 
 ### **3. Advances**
@@ -76,7 +101,7 @@
 
 ### **5. Dashboard Totals**
 ```
-✓ Both show SAME earnings calculation
+✓ Both show SAME earnings calculation (with decimal days)
 ✓ Both show SAME total advances
 ✓ Both show SAME balance to pay
 ✓ Auto-synced every 1 second
@@ -89,13 +114,17 @@
 ```
 Shivaji's App
     ↓
-Creates/Updates Worker
+Creates/Updates Worker + Photo
     ↓
-Saves to Firebase
+Photo → Firebase Storage (returns global URL)
+    ↓
+Worker data → Firestore
     ↓
 Dattatray's App
     ↓
 Fetches from Firebase
+    ↓
+Photo loads from global URL
     ↓
 Updates Local State (synced)
     ↓
@@ -106,27 +135,35 @@ Dashboard Refreshes Automatically
 
 ## **Verification Examples:**
 
-### **Example 1: Worker Creation**
+### **Example 1: Worker Creation with Photo**
 ```
 Time: 10:00 AM
-- Shivaji: "Add Worker" → "Rajesh" → Save
-- Firebase: Updates labours collection
-- Dattatray: App refreshes → Rajesh appears
+- Shivaji: "Add Worker" → "Rajesh" → Select Photo → Save
+- Photo uploading... (loading indicator shows)
+- Firebase Storage: Uploads photo globally
+- Firestore: Updates labours collection with photoUrl
+- Dattatray's App: Worker list refreshes → Rajesh appears with photo
 
 Time: 10:02 AM
-- Dattatray sees Rajesh without doing anything
+- Dattatray sees Rajesh WITH photo without doing anything
+- Photo loaded from Firebase Storage (not local device)
 ```
 
-### **Example 2: Advance Payment**
+### **Example 2: Half-Day Attendance**
 ```
 Time: 11:00 AM
-- Shivaji: Opens Rajesh → "Record Advance" → ₹500 → Save
-- Firebase: Updates advances array
-- Dattatray: App auto-refreshes → Shows ₹500
+- Shivaji: Opens Rajesh → Marks "Half Day" → Saves
+- Firebase: Updates attendance status to "half-day"
+- Dattatray: App auto-refreshes → Shows:
+  - "Present Today: Rajesh (½)"
+  - "This Week's Breakdown: 2.5 days"
+  - "Days Present: ₹350" (50% of ₹700)
 
-Both Dashboard:
-- Total Advances: ₹500 (identical)
-- Transaction History: ₹500 paid by Shivaji (both see)
+Transaction History (Both See):
+- Date: 2026-01-06
+- Worker: Rajesh
+- Type: Half Day
+- Amount: ₹350
 ```
 
 ### **Example 3: Multiple Transactions**
@@ -134,8 +171,8 @@ Both Dashboard:
 Rajesh's Full Record (Both See):
 
 Attendance:
-✓ 2026-01-05: Present (Shivaji marked)
-✓ 2026-01-06: Present (Dattatray marked)
+✓ 2026-01-05: Present (Shivaji marked) → ₹700 transaction
+✓ 2026-01-06: Half Day (Dattatray marked) → ₹350 transaction
 
 Advances:
 ✓ ₹500 - Paid by: Shivaji Kokate
@@ -143,49 +180,63 @@ Advances:
 
 Payments:
 ✓ ₹1000 - Paid by: Shivaji Kokate
-✓ ₹600 - Paid by: Dattatray Jagtap
 
 Calculations (Both Show):
-- Earned: ₹1400 (2 days × ₹700)
+- Earned: ₹1050 (1 full × ₹700 + 1 half × ₹350)
 - Advances: ₹800 (total from both)
-- Payments: ₹1600 (total from both)
-- Balance: -₹1000 (overpaid)
+- Payments: ₹1000 (total)
+- Balance: ₹1050 - ₹800 - ₹1000 = -₹750 (overpaid)
 ```
 
 ---
 
-## **Files Updated:**
+## **Latest Screens Updated:**
 
-1. **AddLabourScreen.js** - New workers added to both contractors
-2. **DashboardScreen.js** - Removed contractor filter, shows ALL workers
-3. **LabourListScreen.js** - Removed contractor filter, shows ALL workers
+| Screen | Feature | Status |
+|--------|---------|--------|
+| AddLabourScreen.js | Photo upload to Firebase Storage | ✅ |
+| LabourCard.js | Display Firebase photo URLs | ✅ |
+| DashboardScreen.js | Count half-day workers in "Present Today" | ✅ |
+| DashboardScreen.js | Show "(½)" suffix for half-day workers | ✅ |
+| QuickAttendanceScreen.js | Three-state attendance cycling | ✅ |
+| AttendanceCalendarScreen.js | Yellow background + indicator for half-day | ✅ |
+| AttendanceCalendarScreen.js | Decimal day display (2.5 format) | ✅ |
+| LabourDetailScreen.js | Decimal days in Financial Summary | ✅ |
+| LabourDetailScreen.js | Decimal days in This Week's Breakdown | ✅ |
+| WorkerDashboardScreen.js | Decimal days in Days Worked | ✅ |
+| WorkerDashboardScreen.js | Decimal days in This Week | ✅ |
+| WeeklyReportScreen.js | Decimal days display | ✅ |
+| TransactionHistoryScreen.js | Half-day attendance as transaction | ✅ |
+| calculations.js | getAttendanceSummary counts half=0.5 | ✅ |
 
 ---
 
 ## **Key Benefits:**
 
 ✅ **Single Source of Truth** - One worker record
-✅ **Perfect Transparency** - Both see everything
+✅ **Perfect Transparency** - Both see everything including half-days
 ✅ **No Manual Sharing** - Automatic from creation
 ✅ **Real-time Sync** - Firebase handles updates
-✅ **Identical Calculations** - No discrepancies
-✅ **Audit Trail** - Shows who did what
+✅ **Identical Calculations** - No discrepancies with decimal days
+✅ **Global Photos** - Works across all phones
+✅ **Audit Trail** - Shows who did what and when
+✅ **Half-Day Support** - Proper 0.5 day calculations
 ✅ **No Conflicts** - Shared data prevents duplicates
 
 ---
 
-## **Testing:**
+## **Recent Fixes (Session Jan 12):**
 
-1. ✅ Shivaji creates worker → Dattatray sees instantly
-2. ✅ Dattatray marks present → Shivaji sees updated
-3. ✅ Both dashboard totals match exactly
-4. ✅ Advances show who paid
-5. ✅ Payments show who paid
-6. ✅ Weekly reports identical for both
-7. ✅ Transaction history complete for both
+✅ Half-day calculations working (0.5 increments in getAttendanceSummary)
+✅ All screens display decimal days properly (2.5 format)
+✅ Worker photos globally accessible via Firebase Storage
+✅ Half-day transactions visible in transaction history
+✅ Login credentials removed from version control
+✅ DashboardScreen counts half-day workers + shows (½) indicator
+✅ All decimal formats consistent across app
 
 ---
 
 ## **Result:**
 
-**Two contractors, ONE shared worker database, COMPLETE transparency! 🎯**
+**Two contractors, ONE shared worker database, COMPLETE transparency with half-day support! 🎯**
