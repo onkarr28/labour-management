@@ -1,6 +1,5 @@
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from './firebase';
-import * as FileSystem from 'expo-file-system';
 
 /**
  * Upload worker photo to Firebase Storage
@@ -12,20 +11,16 @@ export const uploadWorkerPhoto = async (labourId, photoUri) => {
   if (!photoUri) return null;
 
   try {
-    // Read the image file as base64
-    const imageData = await FileSystem.readAsStringAsync(photoUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-
-    // Create blob from base64
-    const imageBlob = Buffer.from(imageData, 'base64');
+    // Fetch the image as a blob
+    const response = await fetch(photoUri);
+    const blob = await response.blob();
 
     // Create storage reference
     const timestamp = Date.now();
     const storageRef = ref(storage, `worker-photos/${labourId}-${timestamp}.jpg`);
 
     // Upload file
-    const snapshot = await uploadBytes(storageRef, imageBlob, {
+    const snapshot = await uploadBytes(storageRef, blob, {
       contentType: 'image/jpeg',
     });
 
