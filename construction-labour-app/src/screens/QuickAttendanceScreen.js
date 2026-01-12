@@ -21,7 +21,7 @@ const QuickAttendanceScreen = ({ navigation }) => {
   const { labours } = state;
   const today = getTodayString();
 
-  const [selectedIds, setSelectedIds] = useState({});
+  const [attendanceStatus, setAttendanceStatus] = useState({}); // { workerId: 'full' | 'half' | 'absent' }
   const [workerSites, setWorkerSites] = useState({}); // { workerId: ['Site A', 'Site B'] }
   const [newSiteInput, setNewSiteInput] = useState({}); // { workerId: 'text' }
   const [refreshing, setRefreshing] = useState(false);
@@ -46,19 +46,25 @@ const QuickAttendanceScreen = ({ navigation }) => {
     const sites = {};
     labours.forEach((labour) => {
       const record = labour.attendance?.[today];
-      if (record?.status === 'present') {
-        initial[labour.id] = true;
-          const workerSites = record.sites || (record.site ? record.site.split(',').map(s => s.trim()) : []);
-          sites[labour.id] = workerSites;
+      if (record?.status === 'present' || record?.status === 'half-day') {
+        initial[labour.id] = record.status === 'present' ? 'full' : 'half';
+        const workerSites = record.sites || (record.site ? record.site.split(',').map(s => s.trim()) : []);
+        sites[labour.id] = workerSites;
       }
     });
-    setSelectedIds(initial);
+    setAttendanceStatus(initial);
     setWorkerSites(sites);
     isInitialized.current = true; // Mark as initialized
   }, [labours, today]);
 
-  const toggleWorker = (id) => {
-    setSelectedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  const toggleAttendanceStatus = (id) => {
+    setAttendanceStatus((prev) => {
+      const current = prev[id];
+      if (!current) return { ...prev, [id]: 'full' }; // Not marked -> Full day
+      if (current === 'full') return { ...prev, [id]: 'half' }; // Full -> Half day
+      if (current === 'half') return { ...prev, [id]: undefined }; // Half -> Absent
+      return { ...prev, [id]: undefined }; // Default to absent
+    });
   };
 
     const addSiteToWorker = (workerId) => {
@@ -83,30 +89,49 @@ const QuickAttendanceScreen = ({ navigation }) => {
 
   const handleSave = () => {
     labours.forEach((labour) => {
-      const isPresent = !!selectedIds[labour.id];
-        const sites = workerSites[labour.id] || [];
-      updateAttendance(labour.id, today, {
-        status: isPresent ? 'present' : 'absent',
+      const status = attendanceStatus[labour.id];
+      const sites = workerSites[labour.id] || [];
+      let attendanceRecord = {
         marked: true,
-          sites: isPresent ? sites : [],
-          site: isPresent && sites.length > 0 ? sites.join(', ') : '', // Keep for backward compatibility
-      });
+        sites: [],
+        site: '',
+      };
+      
+      if (status === 'full') {
+        attendanceRecord.status = 'present';
+        attendanceRecord.sites = sites;
+        attendanceRecord.site = sites.length > 0 ? sites.join(', ') : '';
+      } else if (status === 'half') {
+        attendanceRecord.status = 'half-day';
+        attendanceRecord.sites = sites;
+        attendanceRecord.site = sites.length > 0 ? sites.join(', ') : '';
+      } else {
+        attendanceRecord.status = 'absent';
+      }
+      
+      updateAttendance(labour.id, today, attendanceRecord);
     });
     navigation.goBack();
   };
 
   const renderItem = ({ item }) => {
-    const isSelected = !!selectedIds[item.id];
-      const sites = workerSites[item.id] || [];
+    const status = attendanceStatus[item.id];
+    const isSelected = !!status;
+    const sites = workerSites[item.id] || [];
+    const isFullDay = status === 'full';
+    const isHalfDay = status === 'half';
+    
     return (
       <View style={[styles.row, theme.shadows.soft]}>
         <TouchableOpacity
           style={styles.rowHeader}
-          onPress={() => toggleWorker(item.id)}
+          onPress={() => toggleAttendanceStatus(item.id)}
           activeOpacity={0.8}
         >
-          <View style={styles.checkboxOuter}>
-            {isSelected && <View style={styles.checkboxInner} />}
+          <View style={[styles.statusButton, isFullDay && styles.statusFullDay, isHalfDay && styles.statusHalfDay, !isSelected && styles.statusAbsent]}>
+            <Text style={styles.statusButtonText}>
+              {!isSelected ? 'Absent' : isFullDay ? 'Full' : 'Half'}
+            </Text>
           </View>
           <View style={styles.workerInfo}>
             <Text style={styles.workerName}>{item.name}</Text>
@@ -254,6 +279,34 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 4,
     backgroundColor: colors.primary.mint,
+  },
+  statusButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: theme.spacing.md,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  statusFullDay: {
+    backgroundColor: colors.success,
+    borderColor: colors.success,
+  },
+  statusHalfDay: {
+    backgroundColor: colors.warning,
+    borderColor: colors.warning,
+  },
+  statusAbsent: {
+    backgroundColor: colors.background,
+    borderColor: colors.error,
+  },
+  statusButtonText: {
+    ...typography.caption,
+    fontWeight: '700',
+    color: colors.text.primary,
+    fontSize: 10,
   },
   workerInfo: {
     flex: 1,

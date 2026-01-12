@@ -149,6 +149,7 @@ const AttendanceCalendarScreen = ({ route, navigation }) => {
 
               const attendance = getAttendanceStatus(day);
               const isPresentDay = attendance?.status === 'present';
+              const isHalfDay = attendance?.status === 'half-day';
               const isAbsentDay = attendance?.status === 'absent';
               const dateStr = getDateString(day);
               const today = isToday(dateStr);
@@ -162,6 +163,7 @@ const AttendanceCalendarScreen = ({ route, navigation }) => {
                   style={[
                     styles.dayCell,
                     isPresentDay && styles.dayPresent,
+                    isHalfDay && styles.dayHalfDay,
                     isAbsentDay && styles.dayAbsent,
                     today && styles.dayToday,
                   ]}
@@ -169,11 +171,12 @@ const AttendanceCalendarScreen = ({ route, navigation }) => {
                   <Text
                     style={[
                       styles.dayText,
-                      (isPresentDay || isAbsentDay) && styles.dayTextMarked,
+                      (isPresentDay || isHalfDay || isAbsentDay) && styles.dayTextMarked,
                     ]}
                   >
                     {day}
                   </Text>
+                  {isHalfDay && <View style={styles.halfDayIndicator} />}
                   {hasAdvance && <View style={styles.advanceDot} />}
                 </View>
               );
@@ -290,6 +293,9 @@ const styles = StyleSheet.create({
   dayPresent: {
     backgroundColor: colors.success,
   },
+  dayHalfDay: {
+    backgroundColor: colors.warning,
+  },
   dayAbsent: {
     backgroundColor: colors.error,
   },
@@ -306,6 +312,13 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: colors.primary.mint,
+    marginTop: 2,
+  },
+  halfDayIndicator: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.text.primary,
     marginTop: 2,
   },
   summarySection: {

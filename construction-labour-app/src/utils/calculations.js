@@ -1,11 +1,19 @@
 /**
- * Calculate total days a worker was present
+ * Calculate total days a worker was present (includes half days as 0.5)
  */
 export const calculatePresentDays = (attendance) => {
   if (!attendance) return 0;
-  return Object.values(attendance).filter(
-    (day) => day.status === 'present' && day.marked
-  ).length;
+  let totalDays = 0;
+  Object.values(attendance).forEach((day) => {
+    if (day.marked) {
+      if (day.status === 'present') {
+        totalDays += 1;
+      } else if (day.status === 'half-day') {
+        totalDays += 0.5;
+      }
+    }
+  });
+  return totalDays;
 };
 
 /**
