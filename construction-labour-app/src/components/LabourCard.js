@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Image,
   StyleSheet,
 } from 'react-native';
 import { colors, theme } from '../constants/colors';
@@ -44,22 +43,15 @@ const LabourCard = ({ labour, onPress }) => {
       activeOpacity={0.7}
     >
       <View style={styles.photoContainer}>
-        {labour.photoUrl || labour.photo ? (
-          <Image
-            source={{ uri: labour.photoUrl || labour.photo }}
-            style={styles.photo}
-          />
-        ) : (
-          <View style={styles.placeholderPhoto}>
-            <Text style={styles.initials}>
-              {labour.name
-                .split(' ')
-                .map((n) => n[0])
-                .join('')
-                .toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <View style={styles.placeholderPhoto}>
+          <Text style={styles.initials}>
+            {labour.name
+              .split(' ')
+              .map((n) => n[0])
+              .join('')
+              .toUpperCase()}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.content}>

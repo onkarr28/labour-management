@@ -1,0 +1,35 @@
+================================================================================
+FIREBASE FIRESTORE RULES - COPY AND PASTE IN FIREBASE CONSOLE
+================================================================================
+
+Go to: https://console.firebase.google.com/
+Select Project: labour-management-e3795
+Click: Firestore Database → Rules tab
+Replace everything with below rules
+Click: Publish
+
+================================================================================
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow all operations - No authentication required
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
+
+================================================================================
+IMPORTANT: Click "Publish" button after pasting!
+================================================================================
+
+This rule allows ALL read/write operations on ALL collections:
+- labours
+- contractors
+- worker_credentials
+- Any other collection
+
+Perfect for development and testing!
+================================================================================

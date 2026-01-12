@@ -7,14 +7,9 @@ import {
   StyleSheet,
   StatusBar,
   Platform,
-  Image,
-  ActivityIndicator,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
 import { useLabour } from '../context/LabourContext';
-import { uploadWorkerPhoto } from '../services/firebasePhotoStorage';
-import { showToast } from '../components/Toast';
 import { colors, theme } from '../constants/colors';
 import { typography } from '../constants/typography';
 import { LogOut } from '../components/Icons';
@@ -32,10 +27,9 @@ import { formatDateForDisplay, getWeekStart } from '../utils/dateHelpers';
 
 const WorkerDashboardScreen = () => {
   const { user, logout } = useAuth();
-  const { state, updateLabour } = useLabour();
+  const { state } = useLabour();
   const worker = state.labours.find((l) => l.id === user?.workerId);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const handleLogout = () => {
     setShowLogoutDialog(true);
@@ -44,49 +38,6 @@ const WorkerDashboardScreen = () => {
   const confirmLogout = () => {
     setShowLogoutDialog(false);
     logout();
-  };
-
-  const handleChangePhoto = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        showToast('Permission Required', 'Please allow access to photos', 'warning');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.7,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setUploadingPhoto(true);
-        try {
-          // Upload to Firebase Storage
-          const photoUrl = await uploadWorkerPhoto(worker.id, result.assets[0].uri);
-          
-          // Update worker profile
-          const updatedWorker = {
-            ...worker,
-            photoUrl: photoUrl,
-            photo: photoUrl,
-          };
-          
-          updateLabour(updatedWorker);
-          showToast('Success', 'Profile photo updated successfully!', 'success');
-        } catch (error) {
-          console.error('Photo upload failed:', error);
-          showToast('Error', 'Failed to upload photo. Please try again.', 'error');
-        } finally {
-          setUploadingPhoto(false);
-        }
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      showToast('Error', 'Could not open photo library', 'error');
-    }
   };
 
   const summary = useMemo(() => {
@@ -147,42 +98,6 @@ const WorkerDashboardScreen = () => {
           </View>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutIcon}>
             <LogOut size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Profile Photo Section */}
-        <View style={[styles.photoSection, theme.shadows.soft]}>
-          <TouchableOpacity 
-            style={styles.photoContainer}
-            onPress={handleChangePhoto}
-            disabled={uploadingPhoto}
-          >
-            {uploadingPhoto ? (
-              <View style={styles.photoPlaceholder}>
-                <ActivityIndicator size="large" color={colors.primary.mint} />
-                <Text style={styles.photoPlaceholderText}>Uploading...</Text>
-              </View>
-            ) : worker.photoUrl || worker.photo ? (
-              <Image 
-                source={{ uri: worker.photoUrl || worker.photo }} 
-                style={styles.profilePhoto}
-              />
-            ) : (
-              <View style={styles.photoPlaceholder}>
-                <Text style={styles.photoInitials}>
-                  {worker.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.changePhotoButton}
-            onPress={handleChangePhoto}
-            disabled={uploadingPhoto}
-          >
-            <Text style={styles.changePhotoText}>
-              {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
-            </Text>
           </TouchableOpacity>
         </View>
 
@@ -347,53 +262,6 @@ const styles = StyleSheet.create({
   },
   logoutIcon: {
     padding: theme.spacing.sm,
-  },
-  photoSection: {
-    backgroundColor: colors.card,
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.lg,
-    marginHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    alignItems: 'center',
-  },
-  photoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: theme.spacing.md,
-    overflow: 'hidden',
-  },
-  profilePhoto: {
-    width: '100%',
-    height: '100%',
-  },
-  photoPlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.primary.mint,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  photoInitials: {
-    ...typography.h1,
-    color: colors.text.primary,
-    fontWeight: '700',
-  },
-  photoPlaceholderText: {
-    ...typography.caption,
-    color: colors.text.secondary,
-    marginTop: theme.spacing.sm,
-  },
-  changePhotoButton: {
-    backgroundColor: colors.primary.blue,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.radius.sm,
-  },
-  changePhotoText: {
-    ...typography.bodySmall,
-    color: colors.card,
-    fontWeight: '600',
   },
   infoCard: {
     backgroundColor: colors.card,
