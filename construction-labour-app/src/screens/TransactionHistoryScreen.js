@@ -58,7 +58,7 @@ const TransactionHistoryScreen = ({ navigation }) => {
       // Attendance transactions
       if (labour.attendance) {
         Object.entries(labour.attendance).forEach(([date, record]) => {
-          if (record.status === 'present') {
+          if (record.status === 'present' || record.status === 'half-day') {
             const transactionDate = new Date(date);
             let include = false;
 
@@ -69,14 +69,19 @@ const TransactionHistoryScreen = ({ navigation }) => {
               include = transactionDate >= monthStart && transactionDate <= monthEnd;
 
             if (include && (filterWorker === 'all' || filterWorker === labour.id)) {
+              const isHalfDay = record.status === 'half-day';
+              const amount = isHalfDay ? labour.dailyRate / 2 : labour.dailyRate;
+              const description = isHalfDay ? 'Half Day' : 'Present';
+              
               allTransactions.push({
                 id: `attendance-${labour.id}-${date}`,
                 type: 'attendance',
                 date,
                 workerName: labour.name,
                 workerId: labour.id,
-                amount: labour.dailyRate,
-                description: 'Present',
+                amount: amount,
+                description: description,
+                isHalfDay: isHalfDay,
               });
             }
           }
