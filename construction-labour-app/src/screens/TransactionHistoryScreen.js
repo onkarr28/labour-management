@@ -332,29 +332,31 @@ const TransactionHistoryScreen = ({ navigation }) => {
             <Text style={styles.dropdownArrow}>▼</Text>
           </TouchableOpacity>
           {showWorkerDropdown && (
-            <ScrollView style={styles.dropdownMenu} nestedScrollEnabled={true}>
-              <TouchableOpacity
-                style={styles.dropdownItem}
-                onPress={() => {
-                  setFilterWorker('all');
-                  setShowWorkerDropdown(false);
-                }}
-              >
-                <Text style={styles.dropdownItemText}>All</Text>
-              </TouchableOpacity>
-              {state.labours.map((labour) => (
+            <View style={styles.dropdownMenu}>
+              <ScrollView nestedScrollEnabled={true} scrollEnabled={state.labours.length > 5}>
                 <TouchableOpacity
-                  key={labour.id}
                   style={styles.dropdownItem}
                   onPress={() => {
-                    setFilterWorker(labour.id);
+                    setFilterWorker('all');
                     setShowWorkerDropdown(false);
                   }}
                 >
-                  <Text style={styles.dropdownItemText}>{labour.name}</Text>
+                  <Text style={styles.dropdownItemText}>All</Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
+                {state.labours.map((labour) => (
+                  <TouchableOpacity
+                    key={labour.id}
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setFilterWorker(labour.id);
+                      setShowWorkerDropdown(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownItemText}>{labour.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
           )}
         </View>
 
@@ -524,8 +526,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.xs,
     zIndex: 9999,
     elevation: 10,
-    maxHeight: 180,
-    overflow: 'visible',
+    maxHeight: 200,
     ...theme.shadows.soft,
   },
   dropdownItem: {
