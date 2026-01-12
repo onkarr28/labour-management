@@ -58,7 +58,7 @@ const TransactionHistoryScreen = ({ navigation }) => {
       // Attendance transactions
       if (labour.attendance) {
         Object.entries(labour.attendance).forEach(([date, record]) => {
-          if (record.status === 'present' || record.status === 'half-day') {
+          if (record.marked && (record.status === 'present' || record.status === 'half-day')) {
             const transactionDate = new Date(date);
             let include = false;
 
