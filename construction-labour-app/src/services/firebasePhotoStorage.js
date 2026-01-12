@@ -11,24 +11,39 @@ export const uploadWorkerPhoto = async (labourId, photoUri) => {
   if (!photoUri) return null;
 
   try {
+    console.log('Starting photo upload for labour:', labourId);
+    console.log('Photo URI:', photoUri);
+    
     // Fetch the image as a blob
     const response = await fetch(photoUri);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.status}`);
+    }
+    
     const blob = await response.blob();
+    console.log('Blob created, size:', blob.size, 'type:', blob.type);
 
     // Create storage reference
     const timestamp = Date.now();
-    const storageRef = ref(storage, `worker-photos/${labourId}-${timestamp}.jpg`);
+    const fileName = `worker-photos/${labourId}-${timestamp}.jpg`;
+    const storageRef = ref(storage, fileName);
+    console.log('Storage ref created:', fileName);
 
     // Upload file
+    console.log('Starting upload to Firebase Storage...');
     const snapshot = await uploadBytes(storageRef, blob, {
       contentType: 'image/jpeg',
     });
+    console.log('Upload successful, getting download URL...');
 
     // Get download URL
     const downloadURL = await getDownloadURL(snapshot.ref);
+    console.log('Download URL received:', downloadURL);
     return downloadURL;
   } catch (error) {
     console.error('Error uploading worker photo:', error);
+    console.error('Error details:', error.message);
+    console.error('Error code:', error.code);
     throw error;
   }
 };
