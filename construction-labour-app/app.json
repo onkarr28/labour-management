@@ -25,9 +25,10 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "owner": "onkark28",
     "extra": {
       "eas": {
-        "projectId": "d5e82bd6-9ca1-40f2-968e-98d77d2da566"
+        "projectId": "118aab26-89b7-4385-9e36-050c53b2df2a"
       }
     }
   }

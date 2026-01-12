@@ -85,12 +85,14 @@ const LabourDetailScreen = ({ route, navigation }) => {
     
     const history = [];
     Object.entries(labour.attendance).forEach(([date, record]) => {
-      if (record.status === 'present') {
+      if (record.status === 'present' || record.status === 'half-day') {
         const sites = record.sites || (record.site ? [record.site] : []);
         if (sites.length > 0) {
+          const dayLabel = record.status === 'half-day' ? ' (Half Day)' : '';
           history.push({
             date,
-            sites: sites.join(' and '),
+            sites: sites.join(' and ') + dayLabel,
+            status: record.status,
           });
         }
       }
