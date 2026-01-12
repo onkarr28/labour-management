@@ -72,23 +72,26 @@ const DashboardScreen = ({ navigation }) => {
     contractorWorkers.forEach((labour) => {
       // Count present today and track site
       if (labour.attendance && labour.attendance[today]) {
-        if (labour.attendance[today].status === 'present') {
+        const status = labour.attendance[today].status;
+        if (status === 'present' || status === 'half-day') {
           presentToday++;
           const sites = labour.attendance[today].sites || 
                        (labour.attendance[today].site ? [labour.attendance[today].site] : []);
+          const dayLabel = status === 'half-day' ? ' (½)' : '';
+          const workerWithLabel = labour.name + dayLabel;
           
           if (sites.length === 0) {
             const noSiteKey = 'No site assigned';
             if (!workersBySite[noSiteKey]) {
               workersBySite[noSiteKey] = [];
             }
-            workersBySite[noSiteKey].push(labour.name);
+            workersBySite[noSiteKey].push(workerWithLabel);
           } else {
             sites.forEach(site => {
               if (!workersBySite[site]) {
                 workersBySite[site] = [];
               }
-              workersBySite[site].push(labour.name);
+              workersBySite[site].push(workerWithLabel);
             });
           }
         }

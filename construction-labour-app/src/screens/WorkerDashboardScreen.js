@@ -129,7 +129,7 @@ const WorkerDashboardScreen = () => {
           <View style={styles.summaryCards}>
             <View style={[styles.summaryCard, { backgroundColor: colors.primary.blue }]}>
               <Text style={styles.summaryLabel}>Days Worked</Text>
-              <Text style={styles.summaryValue}>{summary.presentDays}</Text>
+              <Text style={styles.summaryValue}>{summary.presentDays % 1 === 0 ? summary.presentDays : summary.presentDays.toFixed(1)}</Text>
             </View>
             <View style={[styles.summaryCard, { backgroundColor: colors.primary.mint }]}>
               <Text style={styles.summaryLabel}>Total Earned</Text>
@@ -156,7 +156,7 @@ const WorkerDashboardScreen = () => {
           <View style={[styles.weeklyBreakdown, theme.shadows.soft]}>
             <View style={styles.breakdownRow}>
               <Text style={styles.breakdownLabel}>Days Present:</Text>
-              <Text style={styles.breakdownValue}>{summary.weeklySummary.presentDays} days</Text>
+              <Text style={styles.breakdownValue}>{summary.weeklySummary.presentDays % 1 === 0 ? summary.weeklySummary.presentDays : summary.weeklySummary.presentDays.toFixed(1)} days</Text>
             </View>
             <View style={styles.breakdownRow}>
               <Text style={styles.breakdownLabel}>Amount Earned:</Text>

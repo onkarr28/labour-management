@@ -190,7 +190,7 @@ const AttendanceCalendarScreen = ({ route, navigation }) => {
           <View style={styles.summaryGrid}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Days Present</Text>
-              <Text style={styles.summaryValue}>{summary.presentDays}</Text>
+              <Text style={styles.summaryValue}>{summary.presentDays % 1 === 0 ? summary.presentDays : summary.presentDays.toFixed(1)}</Text>
             </View>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Amount Earned</Text>

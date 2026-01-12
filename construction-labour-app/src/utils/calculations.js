@@ -88,6 +88,7 @@ export const getAttendanceSummary = (attendance, startDate, endDate) => {
     if (attendanceDate >= startDate && attendanceDate <= endDate) {
       if (record.marked) {
         if (record.status === 'present') present++;
+        else if (record.status === 'half-day') present += 0.5;
         else if (record.status === 'absent') absent++;
       } else {
         unmarked++;

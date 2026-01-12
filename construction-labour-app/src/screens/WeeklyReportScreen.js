@@ -88,7 +88,7 @@ const WeeklyReportScreen = ({ navigation }) => {
         <Text style={styles.workerName}>{item.name}</Text>
       </View>
       <View style={styles.tableCell}>
-        <Text style={styles.tableValue}>{item.presentDays}</Text>
+        <Text style={styles.tableValue}>{item.presentDays % 1 === 0 ? item.presentDays : item.presentDays.toFixed(1)}</Text>
       </View>
       <View style={styles.tableCell}>
         <Text style={styles.tableValue}>₹{item.earned}</Text>
