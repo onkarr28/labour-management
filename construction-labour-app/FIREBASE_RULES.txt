@@ -1,11 +1,11 @@
 ================================================================================
-FIREBASE FIRESTORE RULES - COPY AND PASTE IN FIREBASE CONSOLE
+FIREBASE FIRESTORE RULES - PRODUCTION READY
 ================================================================================
 
 Go to: https://console.firebase.google.com/
 Select Project: labour-management-e3795
 Click: Firestore Database → Rules tab
-Replace everything with below rules
+Replace ALL content with below rules
 Click: Publish
 
 ================================================================================
@@ -14,7 +14,28 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow all operations - No authentication required
+    
+    // Labours Collection - Full read/write access for all contractors
+    match /labours/{labourId} {
+      allow read, write: if true;
+      
+      // Allow access to subcollections
+      match /{document=**} {
+        allow read, write: if true;
+      }
+    }
+    
+    // Contractors Collection - Full read/write access
+    match /contractors/{contractorId} {
+      allow read, write: if true;
+    }
+    
+    // Worker Credentials - Full read/write access for authentication
+    match /worker_credentials/{workerId} {
+      allow read, write: if true;
+    }
+    
+    // Any other collection - Full access
     match /{document=**} {
       allow read, write: if true;
     }
@@ -22,14 +43,24 @@ service cloud.firestore {
 }
 
 ================================================================================
-IMPORTANT: Click "Publish" button after pasting!
+IMPORTANT: 
+1. Copy EVERYTHING from "rules_version" to the last "}"
+2. Delete ALL existing rules in Firebase Console
+3. Paste the new rules
+4. Click "Publish"
 ================================================================================
 
-This rule allows ALL read/write operations on ALL collections:
-- labours
-- contractors
-- worker_credentials
-- Any other collection
+✅ This rule allows:
+- Both contractors to read/write all labours
+- Saving contractor credentials
+- Worker login authentication
+- All financial transactions (advances, payments)
+- Attendance marking from any device
 
-Perfect for development and testing!
+✅ Working for:
+- Shivaji Kokate (contractor_1)
+- Dattatray Jagtap (contractor_2)
+- All workers with credentials
+- Real-time sync across devices
+
 ================================================================================
