@@ -44,9 +44,9 @@ const LabourCard = ({ labour, onPress }) => {
       activeOpacity={0.7}
     >
       <View style={styles.photoContainer}>
-        {labour.photo ? (
+        {labour.photoUrl || labour.photo ? (
           <Image
-            source={{ uri: labour.photo }}
+            source={{ uri: labour.photoUrl || labour.photo }}
             style={styles.photo}
           />
         ) : (

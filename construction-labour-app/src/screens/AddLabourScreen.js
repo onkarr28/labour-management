@@ -9,6 +9,7 @@ import {
   Image,
   StatusBar,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useLabour } from '../context/LabourContext';
@@ -20,6 +21,7 @@ import QuickActionButton from '../components/QuickActionButton';
 import { getTodayString } from '../utils/dateHelpers';
 import { generateWorkerCredentials } from '../utils/credentialsHelper';
 import { saveWorkerCredentials } from '../services/firebaseWorkers';
+import { uploadWorkerPhoto } from '../services/firebasePhotoStorage';
 
 const trades = ['Worker', 'Helper'];
 const idProofTypes = ['Aadhar', 'PAN', 'Voter ID'];
@@ -27,6 +29,7 @@ const idProofTypes = ['Aadhar', 'PAN', 'Voter ID'];
 const AddLabourScreen = ({ navigation }) => {
   const { addLabour, state } = useLabour();
   const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     mobile: '',
@@ -132,72 +135,93 @@ const AddLabourScreen = ({ navigation }) => {
     return true;
   };
 
-  const handleAddLabour = () => {
+  const handleAddLabour = async () => {
     if (!validateForm()) return;
 
-    const credentials = generateWorkerCredentials(formData.name, formData.mobile);
+    setLoading(true);
+    try {
+      const credentials = generateWorkerCredentials(formData.name, formData.mobile);
+      const labourId = `labour_${Date.now()}`;
 
-    const newLabour = {
-      id: `labour_${Date.now()}`,
-      photo: formData.photo,
-      name: formData.name,
-      mobile: formData.mobile,
-      dailyRate: parseInt(formData.dailyRate),
-      joiningDate: formData.joiningDate,
-      trade: formData.trade,
-      idProofType: formData.idProofType || null,
-      idProofNumber: formData.idProofNumber || null,
-      loginId: credentials.loginId,
-      password: credentials.password,
-      contractorId: user?.contractorId,
-      // Make visible to BOTH contractors immediately
-      contractorIds: ['contractor_1', 'contractor_2'],
-      attendance: {},
-      advances: [],
-      totalAdvance: 0,
-      payments: [],
-    };
+      // Upload photo to Firebase Storage if provided
+      let photoUrl = null;
+      if (formData.photo) {
+        try {
+          photoUrl = await uploadWorkerPhoto(labourId, formData.photo);
+        } catch (photoError) {
+          console.error('Photo upload failed, continuing without photo:', photoError);
+          showToast('Warning', 'Photo upload failed but worker was added successfully', 'warning');
+        }
+      }
 
-    // Save worker credentials to Firebase immediately
-    saveWorkerCredentials(newLabour.id, {
-      name: newLabour.name,
-      loginId: newLabour.loginId,
-      password: newLabour.password,
-      contractorId: user?.contractorId,
-      contractorIds: ['contractor_1', 'contractor_2'],  // Both contractors
-      mobile: newLabour.mobile,
-    }).catch(error => {
-      console.error('Failed to save worker credentials to Firebase:', error);
-    });
+      const newLabour = {
+        id: labourId,
+        photoUrl: photoUrl, // Store Firebase Storage URL instead of local URI
+        photo: photoUrl, // Keep for backward compatibility
+        name: formData.name,
+        mobile: formData.mobile,
+        dailyRate: parseInt(formData.dailyRate),
+        joiningDate: formData.joiningDate,
+        trade: formData.trade,
+        idProofType: formData.idProofType || null,
+        idProofNumber: formData.idProofNumber || null,
+        loginId: credentials.loginId,
+        password: credentials.password,
+        contractorId: user?.contractorId,
+        // Make visible to BOTH contractors immediately
+        contractorIds: ['contractor_1', 'contractor_2'],
+        attendance: {},
+        advances: [],
+        totalAdvance: 0,
+        payments: [],
+      };
 
-    addLabour(newLabour);
-    showToast(
-      'Success!',
-      `${formData.name} has been added successfully!\\n\\nLogin Credentials:\\nID: ${credentials.loginId}\\nPassword: ${credentials.password}`,
-      'success',
-      [
-        {
-          text: 'Add Another Worker',
-          onPress: () => {
-            setFormData({
-              name: '',
-              mobile: '',
-              dailyRate: '600',
-              joiningDate: getTodayString(),
-              trade: '',
-              idProofType: '',
-              idProofNumber: '',
-              photo: null,
-            });
+      // Save worker credentials to Firebase immediately
+      saveWorkerCredentials(newLabour.id, {
+        name: newLabour.name,
+        loginId: newLabour.loginId,
+        password: newLabour.password,
+        contractorId: user?.contractorId,
+        contractorIds: ['contractor_1', 'contractor_2'],  // Both contractors
+        mobile: newLabour.mobile,
+      }).catch(error => {
+        console.error('Failed to save worker credentials to Firebase:', error);
+      });
+
+      addLabour(newLabour);
+      showToast(
+        'Success!',
+        `${formData.name} has been added successfully!\\n\\nLogin Credentials:\\nID: ${credentials.loginId}\\nPassword: ${credentials.password}`,
+        'success',
+        [
+          {
+            text: 'Add Another Worker',
+            onPress: () => {
+              setFormData({
+                name: '',
+                mobile: '',
+                dailyRate: '600',
+                joiningDate: getTodayString(),
+                trade: '',
+                idProofType: '',
+                idProofNumber: '',
+                photo: null,
+              });
+            },
           },
-        },
-        {
-          text: 'Done',
-          onPress: () => navigation.goBack(),
-          style: 'cancel',
-        },
-      ]
-    );
+          {
+            text: 'Done',
+            onPress: () => navigation.goBack(),
+            style: 'cancel',
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Error adding worker:', error);
+      showToast('Error', 'Failed to add worker. Please try again.', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -371,16 +395,27 @@ const AddLabourScreen = ({ navigation }) => {
 
           {/* Buttons */}
           <View style={styles.buttons}>
-            <QuickActionButton
-              title="Add Worker"
-              onPress={handleAddLabour}
-              variant="success"
-            />
-            <QuickActionButton
-              title="Cancel"
-              onPress={() => navigation.goBack()}
-              variant="error"
-            />
+            {loading ? (
+              <View style={[styles.button, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color={colors.primary.blue} />
+                <Text style={[typography.body, { marginTop: theme.spacing.md, color: colors.text.primary }]}>
+                  Uploading photo and adding worker...
+                </Text>
+              </View>
+            ) : (
+              <>
+                <QuickActionButton
+                  title="Add Worker"
+                  onPress={handleAddLabour}
+                  variant="success"
+                />
+                <QuickActionButton
+                  title="Cancel"
+                  onPress={() => navigation.goBack()}
+                  variant="error"
+                />
+              </>
+            )}
           </View>
         </View>
       </ScrollView>
