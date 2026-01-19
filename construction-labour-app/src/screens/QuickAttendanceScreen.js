@@ -44,7 +44,9 @@ const QuickAttendanceScreen = ({ navigation }) => {
     
     const initial = {};
     const sites = {};
-    labours.forEach((labour) => {
+    labours
+      .filter((labour) => !labour.deleted)
+      .forEach((labour) => {
       const record = labour.attendance?.[today];
       if (record?.status === 'present' || record?.status === 'half-day') {
         initial[labour.id] = record.status === 'present' ? 'full' : 'half';
@@ -88,7 +90,9 @@ const QuickAttendanceScreen = ({ navigation }) => {
     };
 
   const handleSave = () => {
-    labours.forEach((labour) => {
+    labours
+      .filter((labour) => !labour.deleted)
+      .forEach((labour) => {
       const status = attendanceStatus[labour.id];
       const sites = workerSites[labour.id] || [];
       let attendanceRecord = {
@@ -200,7 +204,7 @@ const QuickAttendanceScreen = ({ navigation }) => {
       </View>
 
       <FlatList
-        data={labours}
+        data={labours.filter(l => !l.deleted)}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}

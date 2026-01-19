@@ -15,12 +15,25 @@ export const fetchLaboursFromFirebase = async () => {
 
 export const syncLaboursToFirebase = async (labours) => {
   try {
+    // Strong safety guard: never auto-delete everything if local state is empty
+    if (!Array.isArray(labours)) {
+      console.warn('syncLaboursToFirebase called with non-array labours, skipping sync');
+      return;
+    }
+
     const colRef = collection(db, LABOURS_COLLECTION);
 
     // Get existing docs to detect deletions
     const snapshot = await getDocs(colRef);
     const existingIds = snapshot.docs.map((d) => d.id);
-    const desiredIds = labours.map((l) => l.id);
+
+    // If local list is empty but there are existing docs, DO NOT delete them automatically
+    if (labours.length === 0 && existingIds.length > 0) {
+      console.warn('syncLaboursToFirebase: local labours empty while remote has data – skipping delete to protect data');
+      return;
+    }
+
+    const desiredIds = labours.map((l) => l.id).filter(Boolean);
 
     // Upsert all current labours
     for (const labour of labours) {

@@ -73,9 +73,9 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     }
 
-    // Check worker login
+    // Check worker login (only allow non-deleted workers)
     const worker = labours.find(
-      (l) => l.loginId === username && l.password === password
+      (l) => !l.deleted && l.loginId === username && l.password === password
     );
 
     if (worker) {

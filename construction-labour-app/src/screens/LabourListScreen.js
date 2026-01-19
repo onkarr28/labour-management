@@ -41,9 +41,9 @@ const LabourListScreen = ({ navigation }) => {
     }, 500);
   };
 
-  // All workers are visible to both contractors - no filtering needed
+  // All active (non-deleted) workers are visible to both contractors
   const contractorLabours = useMemo(() => {
-    return state.labours;  // Show ALL workers to both contractors
+    return state.labours.filter(l => !l.deleted);  // Hide soft-deleted workers
   }, [state.labours, refreshKey]);
 
   const filteredAndSortedLabours = useMemo(() => {
@@ -150,7 +150,7 @@ const LabourListScreen = ({ navigation }) => {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateText}>
-              {state.labours.length === 0
+              {contractorLabours.length === 0
                 ? 'No workers added yet'
                 : 'No workers match your search'}
             </Text>

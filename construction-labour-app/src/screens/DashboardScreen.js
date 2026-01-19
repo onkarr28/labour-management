@@ -55,9 +55,9 @@ const DashboardScreen = ({ navigation }) => {
     logout();
   };
 
-  // All workers are visible to both contractors - no filtering needed
+  // All active (non-deleted) workers are visible to both contractors
   const contractorWorkers = useMemo(() => {
-    return labours;  // Show ALL workers to both contractors
+    return labours.filter(l => !l.deleted);  // Hide soft-deleted workers
   }, [labours, refreshKey]);
 
   const dashboardData = useMemo(() => {

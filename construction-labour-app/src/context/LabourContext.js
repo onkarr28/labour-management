@@ -27,7 +27,7 @@ const labourReducer = (state, action) => {
       return { ...state, labours: action.payload };
 
     case 'ADD_LABOUR':
-      return { ...state, labours: [...state.labours, action.payload] };
+      return { ...state, labours: [...state.labours, { ...action.payload, deleted: false }] };
 
     case 'UPDATE_LABOUR':
       return {
@@ -38,9 +38,21 @@ const labourReducer = (state, action) => {
       };
 
     case 'DELETE_LABOUR':
+      // Soft delete: mark worker as deleted but keep all data for safety
       return {
         ...state,
-        labours: state.labours.filter((labour) => labour.id !== action.payload),
+        labours: state.labours.map((labour) =>
+          labour.id === action.payload ? { ...labour, deleted: true } : labour
+        ),
+      };
+
+    case 'RESTORE_LABOUR':
+      // Restore a previously soft-deleted worker
+      return {
+        ...state,
+        labours: state.labours.map((labour) =>
+          labour.id === action.payload ? { ...labour, deleted: false } : labour
+        ),
       };
 
     case 'UPDATE_ATTENDANCE':
@@ -212,6 +224,8 @@ export const LabourProvider = ({ children }) => {
       dispatch({ type: 'UPDATE_LABOUR', payload: labour }),
     deleteLabour: (labourId) =>
       dispatch({ type: 'DELETE_LABOUR', payload: labourId }),
+    restoreLabour: (labourId) =>
+      dispatch({ type: 'RESTORE_LABOUR', payload: labourId }),
     updateAttendance: (labourId, date, record) =>
       dispatch({
         type: 'UPDATE_ATTENDANCE',

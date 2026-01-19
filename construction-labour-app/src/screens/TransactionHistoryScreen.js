@@ -54,7 +54,9 @@ const TransactionHistoryScreen = ({ navigation }) => {
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-    state.labours.forEach((labour) => {
+    state.labours
+      .filter((labour) => !labour.deleted)
+      .forEach((labour) => {
       // Attendance transactions
       if (labour.attendance) {
         Object.entries(labour.attendance).forEach(([date, record]) => {
@@ -210,7 +212,7 @@ const TransactionHistoryScreen = ({ navigation }) => {
 
   const getWorkerLabel = (value) => {
     if (value === 'all') return 'All';
-    const worker = state.labours.find(l => l.id === value);
+    const worker = state.labours.find(l => l.id === value && !l.deleted);
     if (worker) {
       const nameParts = worker.name.trim().split(' ');
       if (nameParts.length > 1) {
@@ -338,7 +340,7 @@ const TransactionHistoryScreen = ({ navigation }) => {
           </TouchableOpacity>
           {showWorkerDropdown && (
             <View style={styles.dropdownMenu}>
-              <ScrollView nestedScrollEnabled={true} scrollEnabled={state.labours.length > 5}>
+              <ScrollView nestedScrollEnabled={true} scrollEnabled={state.labours.filter(l => !l.deleted).length > 5}>
                 <TouchableOpacity
                   style={styles.dropdownItem}
                   onPress={() => {
@@ -348,7 +350,7 @@ const TransactionHistoryScreen = ({ navigation }) => {
                 >
                   <Text style={styles.dropdownItemText}>All</Text>
                 </TouchableOpacity>
-                {state.labours.map((labour) => (
+                {state.labours.filter(l => !l.deleted).map((labour) => (
                   <TouchableOpacity
                     key={labour.id}
                     style={styles.dropdownItem}

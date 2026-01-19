@@ -43,7 +43,9 @@ const WeeklyReportScreen = ({ navigation }) => {
     let totalRepayments = 0;
     let workerBreakdown = [];
 
-    state.labours.forEach((labour) => {
+    state.labours
+      .filter((labour) => !labour.deleted)
+      .forEach((labour) => {
       const summary = calculateWeekSummary(labour, weekStart);
       if (summary.presentDays > 0 || summary.weekAdvances > 0 || summary.weekPayments > 0 || summary.weekRepayments > 0) {
         totalWorkers++;
@@ -56,7 +58,7 @@ const WeeklyReportScreen = ({ navigation }) => {
           ...summary,
         });
       }
-    });
+      });
 
     return {
       totalWorkers,

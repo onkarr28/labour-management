@@ -28,7 +28,7 @@ import { formatDateForDisplay, getWeekStart } from '../utils/dateHelpers';
 const WorkerDashboardScreen = () => {
   const { user, logout } = useAuth();
   const { state } = useLabour();
-  const worker = state.labours.find((l) => l.id === user?.workerId);
+  const worker = state.labours.find((l) => l.id === user?.workerId && !l.deleted);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   const handleLogout = () => {
